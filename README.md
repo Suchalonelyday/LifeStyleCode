@@ -1,91 +1,109 @@
-# print(type(7.0))
+from pyrogram import Client
+import pandas as pd
+import matplotlib.pyplot as plt
 
-# // - выделение целой части
-# % - нахождение остатка от деления (для нахождения последней цифры)
-# ** - возведение в степень числа
-# 0.5 - с плавающей точкой 1) print(0.3 + 0.3 + 0.3) ?????? 2) 5e-1 = (5 * 1/10) = 0.5
-# int(x) - преобразование x к типу инт, int(2.3) -- 2
-# float(x) - преобразование x к типу флоат float(5) -- 5.0
-# type() - вычислить тип объекта
-# input() - читает строку с клавиатуры с клавиатуры, input('Введите число')
-# False (0) True (1), x or y, x and y, not x
-# print(a, end = ' ') - если нужно вывести в одной строчке и через пробел
-# len() - длина строки
-# range(10) = 0..9
-## Методы строк
-# s.count(p) - сколько раз строка p встречается в строке s?
-# s.lower() - Все символы строки большие
-# s.upper() - все символы строки большие
-# s.find(p) - на каком индексе находится p начиная слева, s.find('A') = -1 - строки нет
-# s.replace('c', 'A'), вместо 'c' ставим везде 'A'
-# s[-10:-1:-2] - s[Откуда:до куда:шаг]
-# что можно ввести в функцию инпут помимо строки?
-# прочему принт - функция?
-# Разница между двойными и одинарными кавычками - узнать
+# Ваши api_id и api_hash
+api_id = '####'
+api_hash = '######'
 
-## Методы списков
-# students = []
-# students += [1,2,3] - добавление элементов
-# students.append('Plga') - добавление элемента в конец списка
-# students.insert(1,'olga') - добавлние под индекс 1 элемента ольга
-# students.remove('olga') - удаление элемента по значению (первое вхождение удаляет)
-# del students[0] - удаление элемента по значению
-# students.sort() - сортировка списка
-# students.reversed() - в обратном порядке не изменяя список студентов
-# students.reverse() - изменяет список на противоположный
+# Настройте ваш Telegram клиент
+app = Client("telegram_analytics", api_id=api_id, api_hash=api_hash)
 
-# Генерация списков
-# a = [0 for i in range(5)] - выражение 0 (зависимое от i) будет выполнятся для значений 0..4ы
-# a = [int(i) for i in input().split()] - инициализация ввода с клавиатуры
+# Список юзернеймов каналов (без префикса @)
+channel_usernames = [
+    'crypthustle',
+    'Temsikoof',
+    'its_cryptotrade',
+    'drivecrypto',
+    'cryptonspaceen',
+    'libertycryptoq',
+    'cryptotoponchaindata',
+    'crypto_vestor',
+    'BN_invest',
+    'richydad_tg',
+    'cryptotoponchaindataru',
+    'mnstmoney',
+    'tcryptoday',
+    'cryyptonight',
+    'UKRIPTA'
+]
 
-# Генерация двумерных списков
-# n = 3
-# a = [[0] * n] * n
-# a[0][0] = 5 # a = [[5, 0, 0], [5, 0, 0], [5, 0, 0]]
-# a = [[0] * n for i in range(n)]
-# a = [[0 for j in range(n)] for i in range(n)]
-
-m = int(input())
-l = []
-s = 0
-l.append(m)
-if m != 0:
-    while m !=0:
-        n = int(input())
-        l.append(n)
-        m += n
-        if m == 0:
-            for i in l:
-                s += (i ** 2)
-                break
-else:
-    print('0')
-    
-for i in l:
-    s += (i ** 2)
-print(s-1)
-
-# a = [1,-1,2,-2]
-# s = 0
-# for i in a:
-#     s += (i ** 2)
-# print(s)
-
-# def sum_of_squares():
-#     total_sum = 0
-#     numbers = []
-    
-#     while True:
-#         num = int(input())
-#         numbers.append(num)
-#         total_sum += num
+def analyze_channel(channel_username):
+    with app:
+        # Получаем основную информацию о канале
+        channel = app.get_chat(channel_username)
+        print(f"Название канала: {channel.title}")
+        print(f"Количество подписчиков: {channel.members_count}")
         
-#         if total_sum == 0:
-#             break
+        # Получаем последние 100 сообщений для анализа
+        messages = app.get_chat_history(channel_username, limit=1000)
+        data = []
 
-#     # Вычисляем сумму квадратов всех введенных чисел
-#     sum_squares = sum(x ** 2 for x in numbers)
-#     print(sum_squares)
+        for message in messages:
+            if message.views is not None:  # Проверяем, есть ли информация о просмотрах
+                # Получаем количество реакций, если они есть
+                reaction_count = 0
+                if message.reactions:
+                    # Проверяем, содержит ли message.reactions атрибут `reactions`
+                    if hasattr(message.reactions, 'reactions'):
+                        reaction_count = sum(reaction.count for reaction in message.reactions.reactions)
 
-# # Запуск функции
-# sum_of_squares()
+                data.append({
+                    'message_id': message.id,
+                    'views': message.views,
+                    'reactions': reaction_count,
+                    'date': message.date
+                })
+
+        # Создаем DataFrame для обработки данных
+        df = pd.DataFrame(data)
+        if df.empty:
+            print("Недостаточно данных для анализа.")
+            return
+        
+        # Расчет средней вовлеченности
+        average_views = df['views'].mean()
+        median_views = df['views'].median()
+        average_reactions = df['reactions'].mean()
+
+        # Дополнительные параметры анализа
+        views_to_subscribers_ratio = (average_views / channel.members_count) * 100
+        reaction_to_view_ratio = (average_reactions / average_views) * 100 if average_views > 0 else 0
+        publication_frequency = len(df) / ((df['date'].max() - df['date'].min()).days + 1)
+
+        print(f"Среднее количество просмотров: {average_views:.2f}")
+        print(f"Медианное количество просмотров: {median_views:.2f}")
+        print(f"Среднее количество реакций: {average_reactions:.2f}")
+        print(f"Процент вовлеченности (просмотры/подписчики): {views_to_subscribers_ratio:.2f}%")
+        print(f"Соотношение реакций к просмотрам: {reaction_to_view_ratio:.2f}%")
+        print(f"Частота публикаций (постов в день): {publication_frequency:.2f}")
+
+        # Проверка на накрутку
+        if views_to_subscribers_ratio < 10:
+            print("Возможна накрутка: низкое соотношение просмотров к подписчикам.")
+        if reaction_to_view_ratio < 1:
+            print("Возможна накрутка: низкое соотношение реакций к просмотрам.")
+        if publication_frequency > 50:  # Например, если больше 50 постов в день
+            print("Возможна накрутка: слишком высокая частота публикаций.")
+        if df['views'].max() > average_views * 5:
+            print("Возможна накрутка: аномальные пики просмотров.")
+        else:
+            print("Вовлеченность в норме.")
+
+        # Визуализация распределения просмотров
+        plt.figure(figsize=(10, 5))
+        plt.plot(df['date'], df['views'], marker='o')
+        plt.title(f'Динамика просмотров сообщений в канале {channel.title}')
+        plt.xlabel('Дата')
+        plt.ylabel('Количество просмотров')
+        plt.xticks(rotation=45)
+        plt.tight_layout()
+        plt.show()
+
+# Запускаем анализ для каждого канала
+for username in channel_usernames:
+    print(f"\nАнализ канала: {username}")
+    try:
+        analyze_channel(username)
+    except Exception as e:
+        print(f"Ошибка при анализе канала {username}: {e}")
